@@ -45,8 +45,9 @@ enum Smiley {
     private static func drawEye(_ c: CGContext, at p: CGPoint, closedAmount: CGFloat,
                                  direction: LookAwayReminder.Direction?, lookAmount: CGFloat) {
         let eyeW: CGFloat = radius * 0.3
-        let eyeH = eyeW * (1 - closedAmount)
-        if eyeH < 1 {
+        // Switch to a closed eyelid line well before the eye is geometrically flat, so the
+        // closed state is visible for several frames instead of 1-2 at ~30fps.
+        if closedAmount > 0.85 {
             c.setStrokeColor(NSColor(red: 0.3, green: 0.2, blue: 0.05, alpha: 1).cgColor)
             c.setLineWidth(3)
             c.setLineCap(.round)
@@ -56,8 +57,16 @@ enum Smiley {
             c.strokePath()
             return
         }
+        let eyeH = eyeW * (1 - closedAmount)
+        let eyeRect = CGRect(x: p.x - eyeW / 2, y: p.y - eyeH / 2, width: eyeW, height: eyeH)
         c.setFillColor(NSColor.white.cgColor)
-        c.fillEllipse(in: CGRect(x: p.x - eyeW / 2, y: p.y - eyeH / 2, width: eyeW, height: eyeH))
+        c.fillEllipse(in: eyeRect)
+
+        // Clip the pupil to the (shrinking) white of the eye so it shrinks with the eyelid
+        // instead of staying full-size and overhanging the sclera.
+        c.saveGState()
+        c.addEllipse(in: eyeRect)
+        c.clip()
 
         var pupil = p
         let shift = radius * 0.1 * lookAmount
@@ -72,5 +81,6 @@ enum Smiley {
         let pupilSize = eyeW * 0.5
         c.fillEllipse(in: CGRect(x: pupil.x - pupilSize / 2, y: pupil.y - pupilSize / 2,
                                   width: pupilSize, height: pupilSize))
+        c.restoreGState()
     }
 }

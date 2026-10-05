@@ -67,6 +67,8 @@ final class App: NSObject, NSApplicationDelegate {
         view.scheduler.lookawayFreqMin = settings.lookawayFreqMin
 
         offset = (try? FileManager.default.attributesOfItem(atPath: Paths.events)[.size] as? UInt64 ?? 0) ?? 0
+        // A fresh launch always starts shown; clear any marker a previous run left behind.
+        try? FileManager.default.removeItem(atPath: Paths.hidden)
 
         if let demo = fireOnLaunch {
             switch demo {
@@ -90,7 +92,13 @@ final class App: NSObject, NSApplicationDelegate {
     func setHidden(_ h: Bool) {
         hidden = h
         hideItem.title = h ? "Show reminders" : "Hide reminders"
-        if h { window.orderOut(nil) } else { window.orderFrontRegardless() }
+        if h {
+            window.orderOut(nil)
+            try? "1".write(toFile: Paths.hidden, atomically: true, encoding: .utf8)
+        } else {
+            window.orderFrontRegardless()
+            try? FileManager.default.removeItem(atPath: Paths.hidden)
+        }
     }
 
     @objc func quitApp() {

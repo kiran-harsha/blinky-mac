@@ -8,7 +8,6 @@ typeset -g _BLINKY_BIN="$_BLINKY_HOME/bin/blinky-overlay"
 typeset -g _BLINKY_EVENTS="$_BLINKY_HOME/run/events"
 typeset -g _BLINKY_PID="$_BLINKY_HOME/run/pid"
 typeset -g _BLINKY_CONFIG="$_BLINKY_HOME/config"
-typeset -g _BLINKY_HIDDEN=0
 
 _blinky_running() {
   [[ -r "$_BLINKY_PID" ]] || return 1
@@ -65,8 +64,8 @@ _blinky_freq() {
 
 blinky() {
   case "${1:-}" in
-    on)    _BLINKY_HIDDEN=0; _blinky_start; _blinky_send show; echo "👁️ blinky: on" ;;
-    off)   _BLINKY_HIDDEN=1; _blinky_send hide; echo "blinky: off" ;;
+    on)    _blinky_start; _blinky_send show; echo "👁️ blinky: on" ;;
+    off)   _blinky_send hide; echo "blinky: off" ;;
     start) _blinky_start && echo "👁️ blinky started" || echo "overlay not installed — run install.sh" ;;
     quit)  _blinky_send quit; echo "👁️ blinky stopped" ;;
     blink-freq)    _blinky_freq blink_freq_min "blink-freq" "${2:-}" 1 ;;
@@ -74,7 +73,9 @@ blinky() {
     status)
       echo "blink-freq: $(_blinky_freq blink_freq_min "blink-freq" "" 1) min"
       echo "lookaway-freq: $(_blinky_freq lookaway_freq_min "lookaway-freq" "" 20) min"
-      echo "state: $([[ "$_BLINKY_HIDDEN" == 1 ]] && echo off || echo on)"
+      local state=off
+      _blinky_running && [[ ! -f "$_BLINKY_HOME/run/hidden" ]] && state=on
+      echo "state: $state"
       ;;
     demo)
       case "${2:-}" in
