@@ -7,8 +7,16 @@ enum Smiley {
     static let radius: CGFloat = 95
 
     private static let faceFill = NSColor(red: 0.97, green: 0.93, blue: 0.84, alpha: 1)
+    private static let faceHighlight = NSColor(red: 1, green: 0.99, blue: 0.95, alpha: 1)
+    private static let faceShade = NSColor(red: 0.82, green: 0.76, blue: 0.63, alpha: 1)
     private static let outline = NSColor.black
     private static let eyeColor = NSColor(red: 0.93, green: 0.25, blue: 0.55, alpha: 1)
+    private static let shadowColor = NSColor.black.withAlphaComponent(0.55)
+    private static let faceGradient = CGGradient(
+        colorsSpace: CGColorSpaceCreateDeviceRGB(),
+        colors: [faceHighlight.cgColor, faceFill.cgColor, faceShade.cgColor] as CFArray,
+        locations: [0, 0.55, 1]
+    )!
 
     /// - eyeClosedAmount: 0 = open, 1 = fully closed (driven by the blink reminder)
     /// - lookDirection/lookAmount: eye offset toward a direction (driven by the look-away reminder)
@@ -23,7 +31,23 @@ enum Smiley {
         c.setStrokeColor(outline.cgColor)
         c.setLineWidth(5)
         let face = CGRect(x: -radius, y: -radius, width: radius * 2, height: radius * 2)
+
+        c.saveGState()
+        c.setShadow(offset: CGSize(width: 0, height: -8), blur: 22, color: shadowColor.cgColor)
         c.fillEllipse(in: face)
+        c.restoreGState()
+
+        // Bulged-surface look: a radial gradient standing in for a highlight (upper-left,
+        // where the light source hits) fading to a darker rim (where the surface curves away).
+        c.saveGState()
+        c.addEllipse(in: face)
+        c.clip()
+        let bulgeCenter = CGPoint(x: -radius * 0.3, y: radius * 0.35)
+        c.drawRadialGradient(faceGradient, startCenter: bulgeCenter, startRadius: 0,
+                              endCenter: .zero, endRadius: radius * 1.5,
+                              options: [.drawsAfterEndLocation])
+        c.restoreGState()
+
         c.strokeEllipse(in: face)
 
         let eyeDX: CGFloat = radius * 0.4, eyeY: CGFloat = radius * 0.25
