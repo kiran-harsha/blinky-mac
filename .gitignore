@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Build output
+.build/
+*.o
+*.swiftmodule
+
+# Preview renders
+*.png
+
+# Editors
+.idea/
+.vscode/
+*.swp
