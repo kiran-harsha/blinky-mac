@@ -1,16 +1,17 @@
 import AppKit
 
-/// Draws the smiley: a circular face, two eyes (open/closed/looking), and a fixed smile.
-/// Pure drawing function — all animation state lives in `BlinkReminder`/`LookAwayReminder`.
+/// Draws the smiley: a cream circular face with a black outline, two pink round eyes
+/// (open/closed/looking), and a fixed smile. Pure drawing function — all animation state
+/// lives in `BlinkReminder`/`LookAwayReminder`.
 enum Smiley {
-    static let radius: CGFloat = 70
+    static let radius: CGFloat = 95
 
-    private static let faceFill = NSColor(red: 1, green: 0.84, blue: 0.2, alpha: 1)
-    private static let ink = NSColor(red: 0.6, green: 0.45, blue: 0.05, alpha: 1)
-    private static let pupilColor = NSColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 1)
+    private static let faceFill = NSColor(red: 0.97, green: 0.93, blue: 0.84, alpha: 1)
+    private static let outline = NSColor.black
+    private static let eyeColor = NSColor(red: 0.93, green: 0.25, blue: 0.55, alpha: 1)
 
     /// - eyeClosedAmount: 0 = open, 1 = fully closed (driven by the blink reminder)
-    /// - lookDirection/lookAmount: pupil offset toward a direction (driven by the look-away reminder)
+    /// - lookDirection/lookAmount: eye offset toward a direction (driven by the look-away reminder)
     static func draw(_ c: CGContext, at center: CGPoint, eyeClosedAmount: CGFloat = 0,
                       lookDirection: LookAwayReminder.Direction? = nil, lookAmount: CGFloat = 0,
                       alpha: CGFloat) {
@@ -19,8 +20,8 @@ enum Smiley {
         c.translateBy(x: center.x, y: center.y)
 
         c.setFillColor(faceFill.cgColor)
-        c.setStrokeColor(ink.cgColor)
-        c.setLineWidth(3)
+        c.setStrokeColor(outline.cgColor)
+        c.setLineWidth(5)
         let face = CGRect(x: -radius, y: -radius, width: radius * 2, height: radius * 2)
         c.fillEllipse(in: face)
         c.strokeEllipse(in: face)
@@ -31,8 +32,8 @@ enum Smiley {
                     direction: lookDirection, lookAmount: lookAmount)
         }
 
-        c.setStrokeColor(ink.cgColor)
-        c.setLineWidth(4)
+        c.setStrokeColor(outline.cgColor)
+        c.setLineWidth(5)
         c.setLineCap(.round)
         c.beginPath()
         c.move(to: CGPoint(x: -radius * 0.4, y: -radius * 0.25))
@@ -42,45 +43,40 @@ enum Smiley {
         c.restoreGState()
     }
 
-    private static func drawEye(_ c: CGContext, at p: CGPoint, closedAmount: CGFloat,
+    /// A pink circle that shifts for look-away, and for blink slides a face-coloured
+    /// "cutter" circle up over itself as it closes — carving the remaining visible pink
+    /// down to a thin crescent moon rather than squashing it into a line.
+    private static func drawEye(_ c: CGContext, at basePoint: CGPoint, closedAmount: CGFloat,
                                  direction: LookAwayReminder.Direction?, lookAmount: CGFloat) {
-        let eyeW: CGFloat = radius * 0.3
-        // Switch to a closed eyelid line well before the eye is geometrically flat, so the
-        // closed state is visible for several frames instead of 1-2 at ~30fps.
-        if closedAmount > 0.85 {
-            c.setStrokeColor(NSColor(red: 0.3, green: 0.2, blue: 0.05, alpha: 1).cgColor)
-            c.setLineWidth(3)
-            c.setLineCap(.round)
-            c.beginPath()
-            c.move(to: CGPoint(x: p.x - eyeW / 2, y: p.y))
-            c.addLine(to: CGPoint(x: p.x + eyeW / 2, y: p.y))
-            c.strokePath()
-            return
+        var p = basePoint
+        let eyeRadius: CGFloat = radius * 0.18
+        let shift = eyeRadius * 0.9 * lookAmount
+        switch direction {
+        case .left: p.x -= shift
+        case .right: p.x += shift
+        case .up: p.y += shift
+        case .down: p.y -= shift
+        case nil: break
         }
-        let eyeH = eyeW * (1 - closedAmount)
-        let eyeRect = CGRect(x: p.x - eyeW / 2, y: p.y - eyeH / 2, width: eyeW, height: eyeH)
-        c.setFillColor(NSColor.white.cgColor)
-        c.fillEllipse(in: eyeRect)
 
-        // Clip the pupil to the (shrinking) white of the eye so it shrinks with the eyelid
-        // instead of staying full-size and overhanging the sclera.
+        let eyeRect = CGRect(x: p.x - eyeRadius, y: p.y - eyeRadius, width: eyeRadius * 2, height: eyeRadius * 2)
+
         c.saveGState()
         c.addEllipse(in: eyeRect)
         c.clip()
 
-        var pupil = p
-        let shift = radius * 0.1 * lookAmount
-        switch direction {
-        case .left: pupil.x -= shift
-        case .right: pupil.x += shift
-        case .up: pupil.y += shift
-        case .down: pupil.y -= shift
-        case nil: break
+        c.setFillColor(eyeColor.cgColor)
+        c.fillEllipse(in: eyeRect)
+
+        if closedAmount > 0 {
+            let cutterRadius = eyeRadius * 1.05
+            let openOffset = eyeRadius * 2.4    // far enough away: no overlap, eye looks fully open
+            let closedOffset = eyeRadius * 0.5  // close enough: leaves a thin crescent, like a moon
+            let yOffset = openOffset + (closedOffset - openOffset) * closedAmount
+            c.setFillColor(faceFill.cgColor)
+            c.fillEllipse(in: CGRect(x: p.x - cutterRadius, y: p.y - cutterRadius + yOffset,
+                                      width: cutterRadius * 2, height: cutterRadius * 2))
         }
-        c.setFillColor(pupilColor.cgColor)
-        let pupilSize = eyeW * 0.5
-        c.fillEllipse(in: CGRect(x: pupil.x - pupilSize / 2, y: pupil.y - pupilSize / 2,
-                                  width: pupilSize, height: pupilSize))
         c.restoreGState()
     }
 }
