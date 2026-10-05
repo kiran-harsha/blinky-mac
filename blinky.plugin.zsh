@@ -45,16 +45,25 @@ _blinky_config_get() {
   sed -n "s/^$key=//p" "$_BLINKY_CONFIG" | tail -1
 }
 
-# Get/set one frequency: `_blinky_freq <config-key> <label> <minutes-or-empty> <default>`.
+# Get/set one frequency: `_blinky_freq <config-key> <label> <value-or-empty> <default>`.
+# <value> is minutes by default; a trailing "s" (e.g. "30s") sets it in seconds instead.
+# Stored config value is always minutes (Settings.swift reads it as a plain Double, so
+# fractional minutes — e.g. 30s -> 0.5 — work without any change on the Swift side).
 _blinky_freq() {
-  local key="$1" label="$2" minutes="${3:-}" default="$4"
-  if [[ -z "$minutes" ]]; then
+  local key="$1" label="$2" value="${3:-}" default="$4"
+  if [[ -z "$value" ]]; then
     local current="$(_blinky_config_get "$key")"
     echo "${current:-$default}"
     return
   fi
-  if ! [[ "$minutes" =~ '^[0-9]+$' ]]; then
-    echo "usage: blinky $label [minutes]  (0 disables)"
+  local minutes
+  if [[ "$value" =~ '^[0-9]+(\.[0-9]+)?s$' ]]; then
+    local seconds="${value%s}"
+    minutes=$(printf '%s' "$seconds" | awk '{printf "%g", $1 / 60}')
+  elif [[ "$value" =~ '^[0-9]+(\.[0-9]+)?$' ]]; then
+    minutes="$value"
+  else
+    echo "usage: blinky $label [minutes|secs]  (e.g. 5 or 30s; 0 disables)"
     return 1
   fi
   _blinky_config_set "$key" "$minutes"
@@ -83,6 +92,6 @@ blinky() {
         *) echo "usage: blinky demo blink|lookaway" ;;
       esac
       ;;
-    *) echo "usage: blinky {on|off|start|quit|status|blink-freq [min]|lookaway-freq [min]|demo blink|lookaway}" ;;
+    *) echo "usage: blinky {on|off|start|quit|status|blink-freq [min|secs]|lookaway-freq [min|secs]|demo blink|lookaway}" ;;
   esac
 }

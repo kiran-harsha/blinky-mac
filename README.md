@@ -19,12 +19,12 @@ Blinky starts the first time a new terminal opens, with sane defaults (blink eve
 blinky on | off                 # resume / pause both reminders
 blinky start | quit             # launch / stop the overlay process
 blinky status                   # print both frequencies and on/off state
-blinky blink-freq [minutes]     # get/set the blink reminder interval; 0 disables
-blinky lookaway-freq [minutes]  # get/set the look-away reminder interval; 0 disables
-blinky demo blink | lookaway    # fire one reminder immediately, to try it out
+blinky blink-freq [min|secs]     # get/set the blink reminder interval; 0 disables
+blinky lookaway-freq [min|secs]  # get/set the look-away reminder interval; 0 disables
+blinky demo blink | lookaway     # fire one reminder immediately, to try it out
 ```
 
-Frequency changes apply to the running instance immediately and are saved to `~/.blinky/config`, so they persist across restarts.
+A frequency can be given in minutes (`blinky blink-freq 5`) or seconds with a trailing `s` (`blinky blink-freq 30s`) — useful for testing without waiting a full minute. Both are stored as minutes in the config (e.g. `30s` becomes `0.5`). Frequency changes apply to the running instance immediately and are saved to `~/.blinky/config`, so they persist across restarts.
 
 ## How it works
 

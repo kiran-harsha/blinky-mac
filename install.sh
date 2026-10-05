@@ -31,5 +31,5 @@ fi
 echo "👁️ Blinky installed."
 echo "Open a new terminal (or: source ~/.zshrc) and the reminders will start."
 echo "Commands: blinky on | off | start | quit | status"
-echo "Frequencies: blinky blink-freq [minutes] | blinky lookaway-freq [minutes]  (0 disables)"
+echo "Frequencies: blinky blink-freq [min|secs] | blinky lookaway-freq [min|secs]  (e.g. 5 or 30s; 0 disables)"
 echo "Try it: blinky demo blink | blinky demo lookaway"
